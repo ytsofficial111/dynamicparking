@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Available Slots</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: rgb(188, 193, 194);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card-container {
+            margin: 40px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .card {
+            margin: 15px;
+            width: 18rem;
+            height: 15rem;
+            border-radius: 30px;
+        }
+
+        .available {
+            background-color: rgb(100, 226, 100);
+        }
+
+        .booked {
+            background-color: rgb(244, 46, 46);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="fixed-top">
+        <header>
+            <div class="container">
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <a class="navbar-brand" href="{{ url_for('index') }}">Smart Parking</a>
+                    <button class="navbar-toggler" type="button" data-toggle="collapse"
+                        data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav ml-auto">
+                            <li class="nav-item active">
+                                <a class="nav-link" href="{{ url_for('index') }}" style="margin-right: 20px;">Home</a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </header>
+    </div>
+
+    <div class="card-container">
+        <!-- Loop through the slots and display them -->
+        {% for slot in slots %}
+        <div class="card {{ 'available' if slot.status == None else 'booked' }}">
+            <div class="card-body">
+                <h5 class="card-title">Slot {{ slot.slotNumber }}</h5>
+                <p class="card-text">Floor {{ slot.floorNumber }}</p>
+                {% if slot.status == None %}
+                    <!-- Slot is available -->
+                    <button class="btn btn-danger" data-slot-id="{{ slot.id }}" onclick="bookSlot(this)">Book</button>
+                {% else %}
+                    {% if slot.status == logged_in_email %}
+                        <!-- Slot booked by logged-in user -->
+                        <button class="btn btn-success" data-slot-id="{{ slot.id }}" onclick="cancelSlot(this)">Cancel</button>
+                    {% else %}
+                        <!-- Slot booked by another user -->
+                        <span class="card-link">Booked by another user</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Modal for displaying the bill -->
+    <div class="modal" tabindex="-1" id="billModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Booking Cancellation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="billMessage">The bill will be displayed here.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="confirmCancelBtn">Confirm and Pay</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Keep Booking</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let slotIdToCancel = null;
+        let slotElementToUpdate = null;
+
+        // Function to book a slot
+        function bookSlot(button) {
+            const slotId = button.getAttribute("data-slot-id");
+            const formData = new FormData();
+            formData.append('slotId', slotId);
+            
+            fetch('/book', {
+                method: "POST",
+                body: formData
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert("Error: " + data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert("Error: " + error.message);
+            });
+        }
+
+        // Function to initiate slot cancellation
+        function cancelSlot(button) {
+            const slotId = button.getAttribute("data-slot-id");
+            slotIdToCancel = slotId;
+            slotElementToUpdate = button.closest('.card');
+
+            const formData = new FormData();
+            formData.append('slotId', slotId);
+
+            // First, get the bill amount
+            fetch('/get_bill', {
+                method: "POST",
+                body: formData
+            })
+            .then(async (response) => {
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    return response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error('Server returned non-JSON response: ' + text);
+                }
+            })
+            .then((data) => {
+                if (data.status === 'success') {
+                    // Display the bill message in the modal
+                    document.getElementById("billMessage").innerText = data.message;
+                    // Show the modal
+                    $('#billModal').modal('show');
+                } else {
+                    alert("Error: " + data.message);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert("Error: " + error.message);
+            });
+        }
+
+        // Function to confirm cancellation and handle payment
+        document.getElementById("confirmCancelBtn").addEventListener("click", function() {
+            if (slotIdToCancel) {
+                const formData = new FormData();
+                formData.append('slotId', slotIdToCancel);
+
+                fetch('/cancel', {
+                    method: "POST",
+                    body: formData
+                })
+                .then(async (response) => {
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json();
+                    } else {
+                        const text = await response.text();
+                        throw new Error('Server returned non-JSON response: ' + text);
+                    }
+                })
+                .then((data) => {
+                    if (data.status === 'success') {
+                        $('#billModal').modal('hide');
+                        alert("Payment successful. Slot has been cancelled.");
+                        // Update the UI immediately
+                        if (slotElementToUpdate) {
+                            updateSlotStatus(slotElementToUpdate, 'available');
+                            // Replace the cancel button with a book button
+                            const cardBody = slotElementToUpdate.querySelector('.card-body');
+                            const slotId = slotIdToCancel;
+                            cardBody.innerHTML = `
+                                <h5 class="card-title">${cardBody.querySelector('.card-title').textContent}</h5>
+                                <p class="card-text">${cardBody.querySelector('.card-text').textContent}</p>
+                                <button class="btn btn-danger" data-slot-id="${slotId}" onclick="bookSlot(this)">Book</button>
+                            `;
+                        }
+                        // Reset the variables
+                        slotIdToCancel = null;
+                        slotElementToUpdate = null;
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert("Error: " + error.message);
+                });
+            }
+        });
+
+        // Reset variables when modal is closed
+        $('#billModal').on('hidden.bs.modal', function () {
+            slotIdToCancel = null;
+            slotElementToUpdate = null;
+        });
+
+        // Helper function to update the slot status in the UI
+        function updateSlotStatus(slotElement, status) {
+            if (status === 'available') {
+                slotElement.classList.remove('booked');
+                slotElement.classList.add('available');
+            } else {
+                slotElement.classList.remove('available');
+                slotElement.classList.add('booked');
+            }
+        }
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</body>
+
+</html>

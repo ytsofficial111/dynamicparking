@@ -1,0 +1,313 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Parking</title>
+
+<style>
+/* CSS for the registration page */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f2f2f2;
+}
+.navbar {
+  overflow: hidden;
+  background-color: #303054;
+  display: flex;
+}
+
+.navbar a {
+  float: left;
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 14px 20px;
+  text-decoration: none;
+  margin-top: 15px;
+}
+
+.navbar a:hover {
+  color: blue;
+}
+.btn1{
+    font-size: 1rem;
+    font-weight: 400;
+    background-color: #303054;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none !important;
+    transition: all 0.5s;
+    margin-top: 30px;
+}
+.btn1:hover{
+    background-color: #e6edff;
+    color: #303054;
+}
+body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f4f4f4;
+    }
+  
+    label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+  
+    select {
+      padding: 8px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      width: 180px;
+    }
+    table{
+      margin-top: 30px;
+    }
+</style>
+</head>
+<body>
+    <div class="navbar">
+        <h2 style="color: white;margin-right: 600px;margin-left: 20px;">Smart Parking`</h2>
+      <a href="/uhome">Home</a>
+      <a href="#about">About</a>
+      <a href="#services">Services</a>
+      <a href="#contact">Contact</a>
+      <a href="/logout">Logout</a>
+    </div>
+<center style="margin-top: 50px;">
+    <h2>Book your Slot</h2>
+    <form action="/hotelbook" method="post">
+    <table>
+        <tr>
+            <th><label for="floor">Select Floor:</label></th>
+            <td><select id="floor" onchange="populateBlocks()" name="floor">
+                <option value="">Select Floor</option>
+              </select></td>
+        </tr>
+        <tr>
+            <th>
+                <label for="block">Select Block:</label>
+            </th>
+            
+            <td>
+                <select id="block" onchange="populateSlots()" name="block">
+                    <option value="">Select Block</option>
+                  </select>
+            </td>
+        </tr>
+        <tr>
+            <th>
+                <label for="place">Select slot:</label>
+            </th>
+            <td>
+                <select id="place" name="place">
+                    <option value="">Select slot</option>
+                  </select>
+            </td>
+        </tr>
+    </table>
+    <button type="submit" class="btn1">Book Now</button>
+  </form>
+</center>
+
+
+<script>
+    // Sample data for floors, blocks, and slots
+    const data = {
+      "Floor 1": {
+        "Block A": ["Slot 1A", "Slot 2A", "Slot 3A", "Slot 4A", "Slot 5A"],
+        "Block B": ["Slot 1B", "Slot 2B", "Slot 3B", "Slot 4B", "Slot 5B"],
+        "Block C": ["Slot 1C", "Slot 2C", "Slot 3C", "Slot 4C", "Slot 5C"],
+        "Block D": ["Slot 1D", "Slot 2D", "Slot 3D", "Slot 4D", "Slot 5D"],
+        "Block E": ["Slot 1E", "Slot 2E", "Slot 3E", "Slot 4E", "Slot 5E"]
+      },
+      "Floor 2": {
+        "Block A": ["Slot 1A", "Slot 2A", "Slot 3A", "Slot 4A", "Slot 5A"],
+        "Block B": ["Slot 1B", "Slot 2B", "Slot 3B", "Slot 4B", "Slot 5B"],
+        "Block C": ["Slot 1D", "Slot 2D", "Slot 3D", "Slot 4D", "Slot 5D"],
+        "Block D": ["Slot 1E", "Slot 2E", "Slot 3E", "Slot 4E", "Slot 5E"],
+        "Block E": ["Slot 1F", "Slot 2F", "Slot 3F", "Slot 4F", "Slot 5F"],
+      },
+      "Floor 3": {
+        "Block A": ["Slot 1A", "Slot 2A", "Slot 3A", "Slot 4A", "Slot 5A"],
+        "Block B": ["Slot 1B", "Slot 2B", "Slot 3B", "Slot 4B", "Slot 5B"],
+        "Block C": ["Slot 1D", "Slot 2D", "Slot 3D", "Slot 4D", "Slot 5D"],
+        "Block D": ["Slot 1E", "Slot 2E", "Slot 3E", "Slot 4E", "Slot 5E"],
+        "Block E": ["Slot 1F", "Slot 2F", "Slot 3F", "Slot 4F", "Slot 5F"]
+      }
+      // Add more floors, blocks, and slots as needed
+    };
+
+    // Function to populate blocks based on selected floor
+    function populateBlocks() {
+      const floorSelect = document.getElementById("floor");
+      const blockSelect = document.getElementById("block");
+      const selectedFloor = floorSelect.value;
+
+      // Clear block options
+      blockSelect.innerHTML = '<option value="">Select Block</option>';
+
+      // Populate blocks based on selected floor
+      if (selectedFloor !== "") {
+        const blocks = Object.keys(data[selectedFloor]);
+        for (const block of blocks) {
+          const option = document.createElement("option");
+          option.value = block;
+          option.text = block;
+          blockSelect.appendChild(option);
+        }
+      }
+    }
+
+    // Function to populate slots based on selected block
+    function populateSlots() {
+      const floorSelect = document.getElementById("floor");
+      const blockSelect = document.getElementById("block");
+      const slotSelect = document.getElementById("place");
+      const selectedFloor = floorSelect.value;
+      const selectedBlock = blockSelect.value;
+
+      // Clear slot options
+      slotSelect.innerHTML = '<option value="">Select Slot</option>';
+
+      // Populate slots based on selected block
+      if (selectedFloor !== "" && selectedBlock !== "") {
+            const slots = data[selectedFloor][selectedBlock];
+            for (const slot of slots) {
+                const option = document.createElement("option");
+                option.value = slot;
+                option.text = slot;
+                slotSelect.appendChild(option);
+            }
+        }
+    }
+
+    // Populate initial floor options
+    document.addEventListener("DOMContentLoaded", function() {
+        const floorSelect = document.getElementById("floor");
+        for (const floor in data) {
+            const option = document.createElement("option");
+            option.value = floor;
+            option.text = floor;
+            floorSelect.appendChild(option);
+        }
+    });
+</script>
+
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <style>
+        /* Resetting default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Applying custom font */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: rgb(194, 194, 188);
+        }
+
+        /* Container for login form */
+        .login-container {
+            max-width: 550px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            margin-top: 100px;
+            box-shadow: #000108;
+        }
+
+        /* Form heading */
+        .login-container h2 {
+            font-size: 28px;
+            font-weight: 500;
+            border-left: 8px solid #303054;
+            padding: 5px 15px;
+            margin-bottom: 15px;
+        }
+
+        /* Form fields */
+        .login-container input[type="text"],
+        .login-container input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #f8f8f8;
+            transition: box-shadow 0.3s ease;
+        }
+
+        /* Form fields focus */
+        .login-container input[type="text"]:focus,
+        .login-container input[type="password"]:focus {
+            box-shadow: 0 0 5px rgba(48, 48, 84, 0.5);
+        }
+
+        /* Login button */
+        .login-container input[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #303054;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Login button hover */
+        .login-container input[type="submit"]:hover {
+            background-color: #e6edff;
+            color: #303054;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="margin: 40px;">
+        {% for i in data %}
+        <div class="card" style="width: 18rem;display: flex;">
+            <div class="card-body">
+                <h5 class="card-title">{{ i['name'] }}</h5>
+                <div style="display: flex;">
+                    <b>
+                        <h6>Type:</h6>
+                    </b>
+                    {{ i['org'] }}
+                </div>
+                <a href="/floor?org={{ i['_id'] }}" class="card-link">Book now</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+
+</html>
